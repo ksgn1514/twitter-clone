@@ -69,8 +69,9 @@ export default function PostTweetForm() {
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const limit = 1024 * 1024 * 5; // 5MB
     const { files } = e?.target;
-    if (files && files.length === 1) {
+    if (files && files.length === 1 && files[0].size < limit) {
       setFile(files[0]);
     }
   };
