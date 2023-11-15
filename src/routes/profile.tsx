@@ -1,8 +1,18 @@
 import { styled } from "styled-components";
-import { auth, storage } from "../fireabase";
-import { useState } from "react";
+import { auth, db, storage } from "../fireabase";
+import { useEffect, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
+import {
+  query,
+  collection,
+  orderBy,
+  where,
+  limit,
+  getDocs,
+} from "firebase/firestore";
+import { ITweet } from "../components/timeline";
+import Tweet from "../components/tweet";
 
 const Wrapper = styled.div`
   display: flex;
@@ -39,9 +49,75 @@ const Name = styled.span`
   font-size: 22px;
 `;
 
+const NameInput = styled.input`
+  font-size: 22px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  background-color: transparent;
+  color: white;
+  width: 100%;
+  &:focus {
+    outline: none;
+  }
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const Tweets = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+`;
+
+const EditNameButton = styled.button`
+  margin-left: 10px;
+  background-color: #1d9bf0;
+  color: white;
+  font-weight: 600;
+  border: none;
+  font-size: 12px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover,
+  &:active {
+    opacity: 0.9;
+  }
+`;
+const EditNameButtonImg = styled.img`
+  width: 15px;
+  height: 15px;
+`;
+
+const SaveButton = styled.button`
+  background-color: #1d9bf0;
+  color: white;
+  font-weight: 600;
+  border: none;
+  font-size: 12px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover,
+  &:active {
+    opacity: 0.9;
+  }
+`;
+
 export default function Profile() {
   const user = auth.currentUser;
   const [avatar, setAvatar] = useState(user?.photoURL);
+  const [tweets, setTweets] = useState<ITweet[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(user?.displayName ?? "Anonymous");
   const onAvartarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
     if (!user || !files) {
@@ -58,6 +134,48 @@ export default function Profile() {
       });
     }
   };
+  const fetchTweet = async () => {
+    const tweetQuery = query(
+      collection(db, "tweets"),
+      where("userId", "==", user?.uid),
+      orderBy("createdAt", "desc"),
+      limit(25)
+    );
+    const snapshot = await getDocs(tweetQuery);
+    const tweets = snapshot.docs.map((doc) => {
+      const { tweet, createdAt, userId, username, photo } = doc.data();
+      return {
+        tweet,
+        createdAt,
+        userId,
+        username,
+        photo,
+        id: doc.id,
+      };
+    });
+    setTweets(tweets);
+  };
+  const onNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditName(e.target.value);
+  };
+  const onNameSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user || !editName) {
+      return;
+    }
+    setIsSaving(true);
+    await updateProfile(user, {
+      displayName: editName,
+    });
+    setIsSaving(false);
+    setIsEditing(false);
+  };
+  const onEditClick = () => {
+    setIsEditing(true);
+  };
+  useEffect(() => {
+    fetchTweet();
+  }, []);
   return (
     <Wrapper>
       <AvatarUpload htmlFor="avartar">
@@ -85,7 +203,27 @@ export default function Profile() {
         type="file"
         accept="image/*"
       />
-      <Name>{user?.displayName ? user.displayName : "Anonymous"}</Name>
+      {isEditing ? (
+        <Form onSubmit={onNameSave}>
+          <NameInput type="text" onChange={onNameChange} value={editName} />
+          <SaveButton type="submit">
+            {isSaving ? "Saving.." : "Save"}
+          </SaveButton>
+        </Form>
+      ) : (
+        <Name>
+          {user?.displayName ? user.displayName : "Anonymous"}
+          <EditNameButton onClick={onEditClick}>
+            <EditNameButtonImg src="/public/edit.svg" />
+          </EditNameButton>
+        </Name>
+      )}
+
+      <Tweets>
+        {tweets.map((tweet) => (
+          <Tweet key={tweet.id} {...tweet} />
+        ))}
+      </Tweets>
     </Wrapper>
   );
 }

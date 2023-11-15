@@ -44,6 +44,7 @@ const ButtonWrapper = styled.div`
 `;
 
 const DeleteButton = styled.button`
+  margin-right: 10px;
   background-color: tomato;
   color: white;
   font-weight: 600;
@@ -76,6 +77,7 @@ const EditButton = styled.button`
 `;
 
 const SaveButton = styled.input`
+  margin-right: 10px;
   background-color: #1d9bf0;
   color: white;
   font-weight: 600;
@@ -92,6 +94,7 @@ const SaveButton = styled.input`
 `;
 
 const CancelButton = styled.button`
+  margin-right: 10px;
   background-color: tomato;
   color: white;
   font-weight: 600;
@@ -127,6 +130,7 @@ const TextArea = styled.textarea`
   }
 `;
 const EditFileButton = styled.label`
+  margin-right: 10px;
   background-color: #1d9bf0;
   color: white;
   font-weight: 600;
